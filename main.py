@@ -2,39 +2,55 @@ import time
 
 import speedflux
 from multiprocessing import Process
-from speedflux import data
 
 
 def main():
     speedflux.initialize()
-    speedflux.LOG.info('Speedtest CLI data logger to InfluxDB started...')
-    pPing = Process(target=data.pingtest, args=())
-    pSpeed = Process(target=data.speedtest, args=())
-    speedtest_interval = speedflux.CONFIG.SPEEDTEST_INTERVAL * 60
+    speedflux.LOG.info("Speedtest CLI data logger to InfluxDB started")
+
+    pSpeed = Process(target=speedflux.DATA.speedtest, args=())
+    pPing = Process(target=speedflux.DATA.pingtest, args=())
+
+    speedtest_interval = speedflux.CONFIG.SPEEDTEST_INTERVAL
+    speedtest_remaining = speedtest_interval
+
     ping_interval = speedflux.CONFIG.PING_INTERVAL
-    loopcount = 0
-    while (1):  # Run a Speedtest and send the results to influxDB
-        if ping_interval != 0:
-            if loopcount == 0 or loopcount % ping_interval == 0:
+    ping_remaining = ping_interval
+
+    if speedtest_interval < 0 and ping_interval < 0:
+        raise SystemExit("Neither Speedtest or Ping has valid intervals")
+
+    pSpeed.start()
+    pPing.start()
+
+    while True:
+        to_wait = 60
+
+        if speedtest_interval >= 0:
+            if speedtest_remaining <= 0:
+                if pSpeed.is_alive():
+                    pSpeed.terminate()
+                pSpeed = Process(target=speedflux.DATA.speedtest, args=())
+                pSpeed.start()
+                speedtest_remaining = speedtest_interval
+            to_wait = min(to_wait, speedtest_remaining)
+
+        if ping_interval >= 0:
+            if ping_remaining <= 0:
                 if pPing.is_alive():
                     pPing.terminate()
-                pPing = Process(target=data.pingtest, args=())
+                pPing = Process(target=speedflux.DATA.pingtest, args=())
                 pPing.start()
+                ping_remaining = ping_interval
+            to_wait = min(to_wait, ping_remaining)
 
-        if loopcount == 0 or loopcount % speedtest_interval == 0:
-            if pSpeed.is_alive():
-                pSpeed.terminate()
-            pSpeed = Process(target=data.speedtest, args=())
-            pSpeed.start()
-        if ping_interval != 0:
-            if loopcount % (ping_interval * speedtest_interval) == 0:
-                loopcount = 0
-        else:
-            if loopcount == speedtest_interval:
-                loopcount = 0
-        time.sleep(1)
-        loopcount += 1
+        if to_wait > 0:
+            speedflux.LOG.debug(f"Waiting for {to_wait} seconds")
+
+        time.sleep(to_wait)
+        speedtest_remaining -= to_wait
+        ping_remaining -= to_wait
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

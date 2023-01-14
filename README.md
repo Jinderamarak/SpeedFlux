@@ -35,21 +35,20 @@ Also see [Using docker run](https://github.com/breadlysm/speedtest-to-influxdb#d
 The InfluxDB connection settings are controlled by environment variables.
 
 The variables available are:
-- NAMESPACE = default - None
-- INFLUX_DB_ADDRESS = default - influxdb
-- INFLUX_DB_PORT = default - 8086
-- INFLUX_DB_USER = default - {blank}
-- INFLUX_DB_PASSWORD = default - {blank}
-- INFLUX_DB_DATABASE = default - speedtests
-- INFLUX_DB_TAGS = default - None * See below for options, '*' widcard for all *
-- SPEEDTEST_INTERVAL = default - 5 (minutes)
-- SPEEDTEST_SERVER_ID = default - {blank} * id from https://c.speedtest.net/speedtest-servers-static.php *
-- PING_INTERVAL = default - 5 (seconds)
-- PING_TARGETS = default - 1.1.1.1, 8.8.8.8 (csv of hosts to ping)
-- LOG_TYPE = info
+- **NAMESPACE** = None
+- **INFLUX_DB_URL** = `http://influxdb:8086`
+- **INFLUX_DB_TOKEN** = None
+- **INFLUX_DB_ORG** = `org`
+- **INFLUX_DB_VERIFY_SSL** = `True` - *use `True` or `False`*
+- **INFLUX_DB_BUCKET** = `speedtests`
+- **INFLUX_DB_TAGS** = None - *comma separated list, `*` or see below for more info*
+- **SPEEDTEST_INTERVAL** = `300` - *seconds, use `-1` to skip*
+- **SPEEDTEST_SERVER_ID** = None - *id from https://c.speedtest.net/speedtest-servers-static.php*
+- **PING_INTERVAL** = `5` - *seconds, use `-1` to skip*
+- **PING_TARGETS** = `1.1.1.1,8.8.8.8` - *comma seperated list of targets*
+- **LOG_TYPE** = `info` - *use `debug`, `info` or `error`*
 
 ### Variable Notes
-- Intervals are in minutes. *Script will convert it to seconds.*
 - If any variables are not needed, don't declare them. Functions will operate with or without most variables. 
 - Tags should be input without quotes. *INFLUX_DB_TAGS = isp, interface, external_ip, server_name, speedtest_url*
 - NAMESPACE is used to collect data from multiple instances of the container into one database and select which you wish to view in Grafana. i.e. I have one monitoring my Starlink, the other my TELUS connection.
@@ -91,13 +90,11 @@ If you already have Docker and Docker Compose installed, you can use the include
 1. Run the container.
     ```
      docker run -d -t --name speedflux \
-    -e 'NAMESPACE'='None' \
-    -e 'INFLUX_DB_ADDRESS'='influxdb' \
-    -e 'INFLUX_DB_PORT'='8086' \
-    -e 'INFLUX_DB_USER'='_influx_user_' \
-    -e 'INFLUX_DB_PASSWORD'='_influx_pass_' \
-    -e 'INFLUX_DB_DATABASE'='speedtests' \
-    -e 'SPEEDTEST_INTERVAL'='5' \
+    -e 'INFLUX_DB_URL'='http://influxdb:8086' \
+    -e 'INFLUX_DB_TOKEN'='_influx_access_token_' \
+    -e 'INFLUX_DB_ORG'='_influx_org_' \
+    -e 'INFLUX_DB_BUCKET'='speedtests' \
+    -e 'SPEEDTEST_INTERVAL'='300' \
     -e 'SPEEDTEST_FAIL_INTERVAL'='5'  \
     -e 'SPEEDTEST_SERVER_ID'='12746' \
     -e 'LOG_TYPE'='info' \

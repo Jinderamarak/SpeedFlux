@@ -1,26 +1,34 @@
-from speedflux import config, logs, influx
+from speedflux import config, logs, influx, data
 
 # Speedflux
 CONFIG = None
-DB_TYPE = None
 LOG = None
 INFLUXDB = None
+DATA = None
 
 
 def initialize():
     global CONFIG
     global LOG
     global INFLUXDB
+    global DATA
 
     try:
         CONFIG = config.Config()
     except Exception as err:
-        raise SystemExit("Unable to initialize SpeedFlux", err)
+        raise SystemExit("Unable to initialize configuration", err)
+
     try:
         LOG = logs.Log(CONFIG)
     except Exception as err:
-        raise SystemExit("Couldn't initiate logging", err)
+        raise SystemExit("Unable to initialize logging", err)
+
     try:
-        INFLUXDB = influx.Influx(CONFIG)
+        INFLUXDB = influx.Influx(CONFIG, LOG)
     except Exception as err:
-        raise SystemExit("Couldn't initiate InfluxDB <2", err)
+        raise SystemExit("Unable to initialize connection to InfluxDB", err)
+
+    try:
+        DATA = data.Data(CONFIG, INFLUXDB, LOG)
+    except Exception as err:
+        raise SystemExit("Unable to initialize data conenction", err)
