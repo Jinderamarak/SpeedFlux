@@ -9,6 +9,7 @@ class Influx:
         self.config = config
         self.log = log
         self._client = None
+        self._writing = None
 
     @property
     def client(self):
@@ -110,15 +111,15 @@ class Influx:
             self.log.debug(F"Wrote `{data}` to Influx")
         except (ConnectionError, NewConnectionError, Exception) as \
                 bad_connection:
-            if tries == 0:
+            if tries <= 0:
                 self.log.error(
                     "Max retries exceeded for write. Check your database, bucket and token configuration")
                 self.log.error("Exiting")
                 sys.exit()
+                return
 
             self.log.error("Connection error occurred during write")
             self.log.error(bad_connection)
-            self.log.error("Reinitiating database and retrying.")
             self.write(data, data_type, tries - 1)
 
         except Exception as err:
