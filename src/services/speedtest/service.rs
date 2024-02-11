@@ -64,7 +64,7 @@ impl Service for SpeedtestService {
 
         if let Some(server) = &self.config.server {
             debug!(target: &self.name, "Using server: {}", server);
-            cmd.arg("--server").arg(server.to_string());
+            cmd.arg("--server-id").arg(server.to_string());
         }
 
         let output = cmd.output().await?;
