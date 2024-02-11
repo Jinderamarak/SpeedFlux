@@ -1,27 +1,23 @@
-FROM python:3.8-slim-buster
-LABEL maintainer="Breadlysm" \
-    description="Original by Aiden Gilmartin. Maintained by Breadlysm"
+FROM rust:latest as builder
+WORKDIR /build
+
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
+COPY ./src ./src
+
+RUN cargo build --release
+
+
+FROM rust:latest as runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y curl iputils-ping \
+    && curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash \
+    && apt-get install -y speedtest \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN apt-get update 
-RUN apt-get -q -y install --no-install-recommends apt-utils gnupg1 apt-transport-https dirmngr curl
-
-# Install Speedtest
-RUN curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash
-RUN apt-get -q -y install speedtest
-
-# Clean up
-RUN apt-get -q -y autoremove && apt-get -q -y clean 
-RUN rm -rf /var/lib/apt/lists/*
-
-# Copy and final setup
-ADD . /app
 WORKDIR /app
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt 
-COPY . .
+COPY --from=builder /build/target/release/speedflux-rs .
 
-# Excetution
-CMD ["python", "main.py"]
+CMD ["./speedflux-rs"]

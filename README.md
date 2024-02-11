@@ -1,113 +1,61 @@
+# SpeedFlux RS
+Monitoring of your internet using speedtest-cli, ping and InfluxDB.
 
-
-
-# SpeedFlux <img src='https://user-images.githubusercontent.com/3665468/119735610-974a0500-be4a-11eb-9149-dd12ceee03df.png' width='75'>
----
-
-SpeedFlux will monitor your internet speeds at a regular interval and export all of the data to InfluxDB. 
-
-It is mostly written in Python but, uses Ookla's SpeedTest CLI. This is a CLI app. We use Python subprocess to utilize this tool.
-
-There are other Python packages out there that can use Ookla's systems but they are not official and don't provide the same data. This method is consistent and also provides several additional pieces of info. That extra info allows us to tag the data we send to InfluxDB many different ways. 
-
-You can see on the Grafana image below some examples of those tags such as averageing the speeds of different testing sites and rank them. 
-Other uses may tagging different interfaces and running an instance for each. [You can view those tagging options below](https://github.com/breadlysm/speedtest-to-influxdb/blob/master/README.md#tag-options) 
-
- The grafana image below is a prebuilt dashboard you can find at https://grafana.com/grafana/dashboards/13053. The json is also available in the report named `speedflux-grafana.json`. Additionally, other contributors have modified this dash and included a JSON file of those modifications. Use `GrafanaDash-SpeedTests.json` to import that dash into Grafana.
-
-![OriginalDash](https://user-images.githubusercontent.com/3665468/116284820-8038ca00-a75b-11eb-9b30-4a9d26434f8d.png)
+*Written in Rust*
 
 ## Docker
-I have enabled GitHub containers for the app. You can use GitHub or DockerHub. 
-#### GitHub Containers
-```shell
-docker pull ghcr.io/breadlysm/speedflux:latest
 ```
-#### Docker Hub
-```shell
-docker pull breadlysm/speedtest-to-influxdb
+docker pull ghcr.io/jinderamarak/speedflux-rs:latest
 ```
 
-Also see [Using docker run](https://github.com/breadlysm/speedtest-to-influxdb#docker-run) you can replace the container with `breadlysm/speedtest-to-influxdb` with `ghcr.io/breadlysm/speedflux` and that command will work the same. 
-
-## Configuring the script
-
-The InfluxDB connection settings are controlled by environment variables.
-
-The variables available are:
-- **NAMESPACE** = None
-- **INFLUX_DB_URL** = `http://influxdb:8086`
-- **INFLUX_DB_TOKEN** = None
-- **INFLUX_DB_ORG** = `org`
-- **INFLUX_DB_VERIFY_SSL** = `True` - *use `True` or `False`*
-- **INFLUX_DB_BUCKET** = `speedtests`
-- **INFLUX_DB_TAGS** = None - *comma separated list, `*` or see below for more info*
-- **SPEEDTEST_INTERVAL** = `300` - *seconds, use `-1` to skip*
-- **SPEEDTEST_SERVER_ID** = None - *id from https://c.speedtest.net/speedtest-servers-static.php*
-- **PING_INTERVAL** = `5` - *seconds, use `-1` to skip*
-- **PING_TARGETS** = `1.1.1.1,8.8.8.8` - *comma seperated list of targets*
-- **LOG_TYPE** = `info` - *use `debug`, `info` or `error`*
-
-### Variable Notes
-- If any variables are not needed, don't declare them. Functions will operate with or without most variables. 
-- Tags should be input without quotes. *INFLUX_DB_TAGS = isp, interface, external_ip, server_name, speedtest_url*
-- NAMESPACE is used to collect data from multiple instances of the container into one database and select which you wish to view in Grafana. i.e. I have one monitoring my Starlink, the other my TELUS connection.
+## Configuration
+Available environment variables:
+- `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET`
+- `LOG_LEVEL` - `debug`, `info`, `warn`, `error` [default: `info`]
+- Ping specific:
+  - `PING_CRON` - cron expression for ping service
+  - `PING_HOSTS` - comma separated list of hosts to ping
+  - `PING_TIMEOUT` - ping timeout in milliseconds [default: `1000`]
+  - `PING_BYTES` - ping packet size in bytes [default: `32`]
+  - `PING_COUNT` - number of pings to send [default: `5`]
+- Speedtest specific:
+  - `SPEEDTEST_CRON` - cron expression for speedtest service
+  - `SPEEDTEST_SERVER` - speedtest server id [optional]
+  - `SPEEDTEST_FIELDS` - comma separated list of fields sent to InfluxDB
+  - `SPEEDTEST_TAGS` - comma separated list of tags sent to InfluxDB
   
-### Tag Options
-The Ookla speedtest app provides a nice set of data beyond the upload and download speed. The list is below. 
-
-| Tag Name 	| Description 	|
-|-	|-	|
-| isp 	| Your connections ISP 	|
-| interface 	| Your devices connection interface 	|
-| internal_ip 	| Your container or devices IP address 	|
-| interface_mac 	| Mac address of your devices interface 	|
-| vpn_enabled 	| Determines if VPN is enabled or not? I wasn't sure what this represented 	|
-| external_ip 	| Your devices external IP address 	|
-| server_id 	| The Speedtest ID of the server that  was used for testing 	|
-| server_name 	| Name of the Speedtest server used  for testing 	|
-| server_country 	| Country where the Speedtest server  resides 	|
-| server_location | Location where the Speedtest server  resides  |
-| server_host 	| Hostname of the Speedtest server 	|
-| server_port 	| Port used by the Speedtest server 	|
-| server_ip 	| Speedtest server's IP address 	|
-| speedtest_id 	| ID of the speedtest results. Can be  used on their site to see results 	|
-| speedtest_url 	| Link to the testing results. It provides your results as it would if you tested on their site.  	|
+### Speedtest - Fields and Tags
+- `output_type`
+- `timestamp`
+- `ping_jitter`
+- `ping_latency`
+- `ping_low`
+- `ping_high`
+- `download_bandwidth` and `upload_bandwidth`
+- `download_bytes` and `upload_bytes`
+- `download_elapsed` and `upload_elapsed`
+- `download_latency_iqm` and `upload_latency_iqm`
+- `download_latency_low` and `upload_latency_low`
+- `download_latency_high` and `upload_latency_high`
+- `download_latency_jitter` and `upload_latency_jitter`
+- `packet_loss`
+- `isp`
+- `interface_internal_ip`
+- `interface_name`
+- `interface_mac_addr`
+- `interface_is_vpn`
+- `interface_external_ip`
+- `server_id`
+- `server_host`
+- `server_port`
+- `server_name`
+- `server_location`
+- `server_country`
+- `server_ip`
+- `result_id`
+- `result_url`
+- `result_persisted`
 
 ### Additional Notes
-Be aware that this script will automatically accept the license and GDPR statement so that it can run non-interactively. Make sure you agree with them before running.
-
-## Running the Script
-
-### Docker Compose
-If you already have Docker and Docker Compose installed, you can use the included docker compose file. 
-1. clone the github repo
-2. navigate to the folder 
-3. edit the `docker-compose.yml` file with your settings
-4. then run `docker compose up`
-### Docker Run 
-
-1. Run the container.
-    ```
-     docker run -d -t --name speedflux \
-    -e 'INFLUX_DB_URL'='http://influxdb:8086' \
-    -e 'INFLUX_DB_TOKEN'='_influx_access_token_' \
-    -e 'INFLUX_DB_ORG'='_influx_org_' \
-    -e 'INFLUX_DB_BUCKET'='speedtests' \
-    -e 'SPEEDTEST_INTERVAL'='300' \
-    -e 'SPEEDTEST_FAIL_INTERVAL'='5'  \
-    -e 'SPEEDTEST_SERVER_ID'='12746' \
-    -e 'LOG_TYPE'='info' \
-    breadlysm/speedtest-to-influxdb
-    ```
-- You can also use `ghcr.io/breadlysm/speedflux` as GitHub containers is enabled. 
-<br>
-<br>
-
-<sup><sub>**Pull Requests**</sub></sup>
-
-<sub><sup>I will accept pull requests as long as core functionality and settings remain the same. Changes should be in addition to corefunctionality. I don't want a situation where a script auto-updates and ruins months/years of data or causes other headaches. Feel free to add yourself as contributing but I ask that links to containers do not change.</sub></sup>
-
----
-
-This script looks to have been originally written by https://github.com/aidengilmartin/speedtest-to-influxdb/blob/master/main.py and I forked it from https://github.com/breadlysm/speedtest-to-influxdb. They did the hard work, I've continued to modify it though to fit my needs.
+Be aware that this will automatically accept the license and GDPR statement of the `speedtest-cli`. Make sure you agree with them before running.
+I heavily inspired myself from the work of @breadlysm and @aidengilmartin when rewriting the [SpeedFlux](https://github.com/breadlysm/SpeedFlux) into Rust.
