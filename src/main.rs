@@ -1,5 +1,6 @@
 use crate::config::{Config, PartialConfig};
 use crate::influxdb::InfluxDB;
+use crate::services::ping::service::PingService;
 use crate::services::service::Service;
 use crate::services::speedtest::service::SpeedtestService;
 use clap::Parser;
@@ -51,6 +52,11 @@ async fn main() -> anyhow::Result<()> {
     let mut scheduler = JobScheduler::new().await?;
     if let Some(job) = create_speedtest(shared_config.clone(), shared_db.clone())? {
         scheduler.add(job).await?;
+        info!("Added speedtest service");
+    }
+    if let Some(job) = create_ping(shared_config.clone(), shared_db.clone())? {
+        scheduler.add(job).await?;
+        info!("Added ping service");
     }
 
     scheduler.start().await?;
@@ -71,6 +77,15 @@ async fn main() -> anyhow::Result<()> {
 fn create_speedtest(config: Arc<Config>, db: Arc<InfluxDB>) -> anyhow::Result<Option<Job>> {
     if let Some(config) = &config.speedtest {
         let service = SpeedtestService::new(db, config.clone(), "speedtest");
+        let job = create_service_job(&config.cron, service)?;
+        return Ok(Some(job));
+    }
+    Ok(None)
+}
+
+fn create_ping(config: Arc<Config>, db: Arc<InfluxDB>) -> anyhow::Result<Option<Job>> {
+    if let Some(config) = &config.ping {
+        let service = PingService::new(db, config.clone(), "ping");
         let job = create_service_job(&config.cron, service)?;
         return Ok(Some(job));
     }

@@ -1,7 +1,7 @@
+use crate::services::ping::config::{PartialPingConfig, PingConfig};
 use crate::services::speedtest::config::{PartialSpeedtestConfig, SpeedtestConfig};
-use clap::ArgAction;
-use clap::{Args, Parser, ValueEnum};
-use url::{Host, Url};
+use clap::{Parser, ValueEnum};
+use url::Url;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -22,32 +22,6 @@ pub struct PartialConfig {
     pub ping: PartialPingConfig,
 }
 
-impl TryFrom<PartialConfig> for Config {
-    type Error = String;
-    fn try_from(config: PartialConfig) -> Result<Self, Self::Error> {
-        let speedtest = config.speedtest.try_into()?;
-        let ping = None;
-
-        Ok(Config {
-            influxdb_url: config.influxdb_url,
-            influxdb_token: config.influxdb_token,
-            influxdb_org: config.influxdb_org,
-            influxdb_bucket: config.influxdb_bucket,
-            log_level: config.log_level,
-            speedtest,
-            ping,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Args)]
-pub struct PartialPingConfig {
-    #[arg(name = "PING_CRON", long = "ping-cron", env = "PING_CRON")]
-    pub cron: Option<String>,
-    #[arg(name = "PING_HOSTS", long = "ping-hosts", env = "PING_HOSTS")]
-    pub hosts: Option<String>,
-}
-
 #[derive(Debug, Clone)]
 pub struct Config {
     pub influxdb_url: Url,
@@ -59,10 +33,22 @@ pub struct Config {
     pub ping: Option<PingConfig>,
 }
 
-#[derive(Debug, Clone)]
-pub struct PingConfig {
-    pub cron: String,
-    pub hosts: Vec<Host>,
+impl TryFrom<PartialConfig> for Config {
+    type Error = String;
+    fn try_from(config: PartialConfig) -> Result<Self, Self::Error> {
+        let speedtest = config.speedtest.try_into()?;
+        let ping = config.ping.try_into()?;
+
+        Ok(Config {
+            influxdb_url: config.influxdb_url,
+            influxdb_token: config.influxdb_token,
+            influxdb_org: config.influxdb_org,
+            influxdb_bucket: config.influxdb_bucket,
+            log_level: config.log_level,
+            speedtest,
+            ping,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -91,15 +77,4 @@ fn parse_http_url(text: &str) -> Result<Url, String> {
         "http" | "https" => Ok(url),
         _ => Err("URL scheme must be http or https".to_string()),
     }
-}
-
-fn parse_hosts(text: &str) -> Result<Vec<Host>, String> {
-    text.split('.')
-        .map(|s| Host::parse(s))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())
-}
-
-pub fn parse_comma_list(text: &str) -> Result<Vec<String>, String> {
-    Ok(text.split(',').map(|s| s.to_string()).collect())
 }

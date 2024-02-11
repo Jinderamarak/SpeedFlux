@@ -52,28 +52,28 @@ impl Service for SpeedtestService {
     }
 
     async fn execute(&self) -> anyhow::Result<()> {
-        debug!(target: "speedtest", "Executing command");
+        debug!(target: &self.name, "Executing command");
         let mut cmd = Command::new("speedtest");
         cmd.arg("--accept-license")
             .arg("--accept-gdpr")
             .arg("--format=json");
 
         if let Some(server) = &self.config.server {
-            debug!(target: "speedtest", "Using server: {}", server);
+            debug!(target: &self.name, "Using server: {}", server);
             cmd.arg("--server").arg(server.to_string());
         }
 
         let output = cmd.output().await?;
         let output = String::from_utf8(output.stdout)?;
 
-        debug!(target: "speedtest", "Parsing output");
+        debug!(target: &self.name, "Parsing output");
         let data: CliOutput = serde_json::from_str(&output)?;
 
-        debug!(target: "speedtest", "Building data point");
+        debug!(target: &self.name, "Building data point");
         let data_point = self.build_data_point(&data)?;
         let data_points = vec![data_point];
 
-        debug!(target: "speedtest", "Writing data to DB");
+        debug!(target: &self.name, "Writing data to DB");
         self.db.writes(data_points).await?;
 
         Ok(())
