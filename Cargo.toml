@@ -1,0 +1,23 @@
+[package]
+name = "speedflux-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { version = "1.0.79" }
+async-trait = { version = "0.1.77" }
+chrono = { version = "0.4.31", features = ["serde"] }
+clap = { version = "4.4.17", features = ["derive", "env"] }
+dotenv = { version = "0.15.0" }
+influxdb2 = { version = "0.5.0" }
+log = { version = "0.4.20" }
+regex = { version = "1.10.3" }
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = { version = "1.0.111" }
+simple_logger = { version = "4.3.3" }
+tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros", "process"] }
+tokio-cron-scheduler = { version = "0.10.0" }
+tokio-stream = { version = "0.1.14" }
+url = { version = "2.5.0" }
