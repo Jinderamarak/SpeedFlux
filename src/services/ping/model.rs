@@ -39,7 +39,7 @@ fn parse_output(output: &str) -> anyhow::Result<PingOutput> {
         r"[0-9]+ packets transmitted, [0-9]+ received, ([0-9]+)% packet loss, time [0-9]+ms",
     )?;
     let rtt_re = Regex::new(r"rtt min/avg/max/mdev = ([0-9.]+)/([0-9.]+)/([0-9.]+)/[0-9.]+ ms")?;
-    parse_any_output(output, &packet_loss_re, &rtt_re)
+    parse_any_output(output, &packet_loss_re, &rtt_re, 1, 2, 3)
 }
 
 #[cfg(target_os = "windows")]
@@ -58,13 +58,16 @@ fn parse_output(output: &str) -> anyhow::Result<PingOutput> {
         r"Packets: Sent = [0-9]+, Received = [0-9]+, Lost = [0-9]+ \(([0-9]+)% loss\),",
     )?;
     let rtt_re = Regex::new(r"Minimum = ([0-9]+)ms, Maximum = ([0-9]+)ms, Average = ([0-9]+)ms")?;
-    parse_any_output(output, &packet_loss_re, &rtt_re)
+    parse_any_output(output, &packet_loss_re, &rtt_re, 1, 3, 2)
 }
 
 fn parse_any_output(
     output: &str,
     packet_loss_re: &Regex,
     rtt_re: &Regex,
+    min: usize,
+    avg: usize,
+    max: usize,
 ) -> anyhow::Result<PingOutput> {
     let mut packet_loss = 0.0;
     let mut rtt_min = 0.0;
@@ -75,9 +78,9 @@ fn parse_any_output(
         if let Some(captures) = packet_loss_re.captures(line) {
             packet_loss = captures[1].parse()?;
         } else if let Some(captures) = rtt_re.captures(line) {
-            rtt_min = captures[1].parse()?;
-            rtt_avg = captures[2].parse()?;
-            rtt_max = captures[3].parse()?;
+            rtt_min = captures[min].parse()?;
+            rtt_avg = captures[avg].parse()?;
+            rtt_max = captures[max].parse()?;
         }
     }
 
