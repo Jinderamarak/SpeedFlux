@@ -5,7 +5,7 @@ use crate::services::speedtest::model::{AsInfluxDbData, CliOutput};
 use async_trait::async_trait;
 use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::DataPoint;
-use log::debug;
+use log::{debug, warn};
 use std::sync::Arc;
 use tokio::process::Command;
 
@@ -32,12 +32,16 @@ impl SpeedtestService {
         for field in &self.config.fields {
             if let Some(value) = as_fields.get(field) {
                 builder = builder.field(field, value.clone());
+            } else {
+                warn!(target: &self.name, "Unknown field: {}", field);
             }
         }
 
         for tag in &self.config.tags {
             if let Some(value) = as_tags.get(tag) {
                 builder = builder.tag(tag, value.clone());
+            } else {
+                warn!(target: &self.name, "Unknown tag: {}", tag);
             }
         }
 
