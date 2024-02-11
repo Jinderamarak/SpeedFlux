@@ -58,4 +58,5 @@ Available environment variables:
 
 ### Additional Notes
 Be aware that this will automatically accept the license and GDPR statement of the `speedtest-cli`. Make sure you agree with them before running.
+
 I heavily inspired myself from the work of @breadlysm and @aidengilmartin when rewriting the [SpeedFlux](https://github.com/breadlysm/SpeedFlux) into Rust.
