@@ -6,8 +6,8 @@ use async_trait::async_trait;
 use influxdb2::models::data_point::DataPointError;
 use influxdb2::models::DataPoint;
 use log::debug;
-use std::process::Command;
 use std::sync::Arc;
+use tokio::process::Command;
 
 pub struct SpeedtestService {
     db: Arc<InfluxDB>,
@@ -63,7 +63,7 @@ impl Service for SpeedtestService {
             cmd.arg("--server").arg(server.to_string());
         }
 
-        let output = cmd.output()?;
+        let output = cmd.output().await?;
         let output = String::from_utf8(output.stdout)?;
 
         debug!(target: "speedtest", "Parsing output");
