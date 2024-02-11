@@ -49,6 +49,7 @@ async fn main() -> anyhow::Result<()> {
     let shared_db = Arc::new(client);
     let shared_config = Arc::new(config);
 
+    debug!("Creating job scheduler");
     let mut scheduler = JobScheduler::new().await?;
     if let Some(job) = create_speedtest(shared_config.clone(), shared_db.clone())? {
         scheduler.add(job).await?;
@@ -75,6 +76,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn create_speedtest(config: Arc<Config>, db: Arc<InfluxDB>) -> anyhow::Result<Option<Job>> {
+    debug!("Creating speedtest service");
     if let Some(config) = &config.speedtest {
         let service = SpeedtestService::new(db, config.clone(), "speedtest");
         let job = create_service_job(&config.cron, service)?;
@@ -84,6 +86,7 @@ fn create_speedtest(config: Arc<Config>, db: Arc<InfluxDB>) -> anyhow::Result<Op
 }
 
 fn create_ping(config: Arc<Config>, db: Arc<InfluxDB>) -> anyhow::Result<Option<Job>> {
+    debug!("Creating ping service");
     if let Some(config) = &config.ping {
         let service = PingService::new(db, config.clone(), "ping");
         let job = create_service_job(&config.cron, service)?;
@@ -96,6 +99,11 @@ fn create_service_job<S>(cron: &str, service: S) -> anyhow::Result<Job>
 where
     S: Service + Send + Sync + 'static,
 {
+    debug!(
+        "Creating job for service: \"{}\", with cron: {}",
+        service.name(),
+        cron
+    );
     let service = Arc::new(service);
     let job = Job::new_async(cron, move |_, _| {
         let service = service.clone();

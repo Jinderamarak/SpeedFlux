@@ -68,10 +68,23 @@ impl Service for SpeedtestService {
         }
 
         let output = cmd.output().await?;
+        if !output.status.success() {
+            if let Ok(stderr) = String::from_utf8(output.stderr) {
+                warn!(target: &self.name, "Command failed: {}, stderr: {}", output.status, stderr);
+            } else {
+                warn!(target: &self.name, "Command failed: {}", output.status);
+            }
+        }
+
         let output = String::from_utf8(output.stdout)?;
 
         debug!(target: &self.name, "Parsing output");
-        let data: CliOutput = serde_json::from_str(&output)?;
+        let data: Result<CliOutput, _> = serde_json::from_str(&output);
+        if let Err(err) = &data {
+            warn!(target: &self.name, "Failed to parse output: {}, stdout: {}", err, output);
+        }
+
+        let data = data?;
 
         debug!(target: &self.name, "Building data point");
         let data_point = self.build_data_point(&data)?;
